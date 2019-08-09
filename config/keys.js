@@ -1,4 +1,4 @@
 module.exports = {
-    mongoURL : 'mongodb+srv://nmishra:abc_123456@cluster0-y6i21.mongodb.net/myconnections',
-    secretOrKey : 'secret'
+    mongoURL : process.env.MONGO_URI,
+    secretOrKey : 'process.env.SECRET_OR_KEY
 };
