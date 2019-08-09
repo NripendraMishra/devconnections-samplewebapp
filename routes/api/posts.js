@@ -21,6 +21,7 @@ router.get('/test', (req, res) => {
 // @desc    Get posts 
 // @access  Public
 router.get('/:id', (req, res) => {
+    console.log(req.params.id)
     Post.findById(req.params.id)
         .then(post => res.status(200).json(post))
         .catch(err => res.status(404).json({
@@ -83,117 +84,99 @@ router.delete(
 // @access  Private
 router.post(
     '/like/:id',
-    passport.authenticate('jwt', {
-        session: false
-    }),
+    passport.authenticate('jwt', { session: false }),
     (req, res) => {
-        Profile.findOne({
-            user: req.user.id
-        }).then(profile => {
-            Post.findById(req.params.id)
-                .then(post => {
-                    console.log(post.likes)
-                    if (post.likes.filter(like => like.user.toString() === req.user.id).length > 0) {
-                        res.status(400).json({
-                            already: 'User already liked this post'
-                        })
-                    }
-
-                    post.likes.unshift({
-                        user: req.user.id
-                    })
-
-                    post.save().then(res.status(200).json({
-                        post
-                    })).catch(err => res.status(500).json({
-                        err: 'Failed to like'
-                    }))
-                })
-                .catch(err => res.status(404).json({
-                    postnotfound: err
-                }))
-        })
+      Profile.findOne({ user: req.user.id }).then(profile => {
+        Post.findById(req.params.id)
+          .then(post => {
+            if (
+              post.likes.filter(like => like.user.toString() === req.user.id)
+                .length > 0
+            ) {
+              return res
+                .status(400)
+                .json({ alreadyliked: 'User already liked this post' })
+            }
+  
+            // Add user id to likes array
+            post.likes.unshift({ user: req.user.id })
+  
+            post.save().then(post => res.json(post))
+          })
+          .catch(err => res.status(404).json({ postnotfound: 'No post found' }))
+      });
     }
-)
+  );   
 
-// @route   DELETE api/posts/like/:id
-// @desc    Dislike a post
+
+// @route   POST api/posts/unlike/:id
+// @desc    Unlike post
 // @access  Private
-router.delete(
-    '/like/:id',
-    passport.authenticate('jwt', {
-        session: false
-    }),
-    (req, res) => {
-        Profile.findOne({
-            user: req.user.id
-        }).then(profile => {
-            Post.findById(req.params.id)
-                .then(post => {
-                    if (post.likes.filter(like => like.user.toString() === req.user.id).length === 0) {
-                        res.status(400).json({
-                                already: 'You have not liked this post'
-                            })
-                            .catch(err => console.log(err))
-                    }
+router.post(
+  '/unlike/:id',
+  passport.authenticate('jwt', { session: false }),
+  (req, res) => {
+    Profile.findOne({ user: req.user.id }).then(profile => {
+      Post.findById(req.params.id)
+        .then(post => {
+          if (
+            post.likes.filter(like => like.user.toString() === req.user.id)
+              .length === 0
+          ) {
+            return res
+              .status(400)
+              .json({ notliked: 'You have not yet liked this post' })
+          }
 
-                    // Get remove
-                    const removeIndex = post.likes.map(item => item.user.toString()).indexOf(req.user.id)
-                    post.likes.splice(removeIndex, 1)
+          // Get remove index
+          const removeIndex = post.likes
+            .map(item => item.user.toString())
+            .indexOf(req.user.id);
 
-                    // Save
-                    post.save().then(post => res.status(200).json(post)).catch(err => console.log(err))
-                })
-                .catch(err => res.status(404).json({
-                    postnotfound: err
-                }))
+          // Splice out of array
+          post.likes.splice(removeIndex, 1)
+          // Save
+          post.save().then(post => res.json(post))
         })
-    }
+        .catch(err => res.status(404).json({ postnotfound: 'No post found' }));
+    })
+  }
 )
 
 // @route   POST api/posts/comment/:id
-// @desc    Comment on a post
+// @desc    Add comment to post
 // @access  Private
 router.post(
     '/comment/:id',
-    passport.authenticate('jwt', {
-        session: false
-    }),
+    passport.authenticate('jwt', { session: false }),
     (req, res) => {
-        const {
-            errors,
-            isValid
-        } = validatePostInput(req.body)
-    
-        // Check Validation
-        if (!isValid) {
-            // Return any errors with 400 status
-            return res.status(400).json(errors);
-        }
-
-        Profile.findOne({
+      const { errors, isValid } = validatePostInput(req.body)
+  
+      // Check Validation
+      if (!isValid) {
+        // If any errors, send 400 with errors object
+        return res.status(400).json(errors)
+      }
+  
+      Post.findById(req.params.id)
+        .then(post => {
+          const newComment = {
+            text: req.body.text,
+            name: req.body.name,
+            avatar: req.body.avatar,
             user: req.user.id
-        }).then(profile => {
-            Post.findById(req.params.id)
-                .then(post => {
-                    post.comments.unshift({
-                        text: req.body.text,
-                        user: req.user.id,
-                        avatar: req.user.avatar
-                    })
-
-                    post.save().then(res.status(200).json({
-                        post
-                    })).catch(err => res.status(500).json({
-                        err: 'Failed to comment'
-                    }))
-                })
-                .catch(err => res.status(404).json({
-                    postnotfound: 'No post found'
-                }))
+          };
+  
+          // Add to comments array
+          post.comments.unshift(newComment)
+  
+          // Save
+          post.save().then(post => res.json(post))
         })
+        .catch(err => res.status(404).json({ postnotfound: 'No post found' }))
     }
-)
+  );
+  
 
 // @route   DELETE api/posts/comment/:id
 // @desc    Delete comment on a post
@@ -261,5 +244,7 @@ router.post('/', passport.authenticate('jwt', {
     newPost.save().then(post => res.status(200).json(post)).catch(err => console.log(err))
 
 })
+
+
 
 module.exports = router

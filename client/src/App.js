@@ -27,18 +27,22 @@ import Profiles from './components/profiles/Profiles';
 import Profile from './components/profile/Profile';
 import NotFound from './components/not-found/NotFound';
 import Posts from './components/posts/Posts';
+import Post from './components/post/Post';
 
 
 // check for token
 if(localStorage.jwtToken){
+  
   // Set token to header
   setAuthToken(localStorage.jwtToken)
   // Decode token and get user information
   const decoded = jwt_decode(localStorage.jwtToken)
+
   // Set user and isAuthenticated
   store.dispatch(setCurrentUser(decoded))
+ 
   // Check for expire token
-  const currentTime = Date.now / 1000
+  const currentTime = Date.now() / 1000
   if(decoded.exp < currentTime){
       // Logout the user
       store.dispatch(logoutUser())
@@ -78,6 +82,9 @@ function App() {
                 </Switch>
                 <Switch>
                   <PrivateRoute exact path = '/feed' component = {Posts} />
+                </Switch>
+                <Switch>
+                  <PrivateRoute exact path = '/post/:id' component = {Post} />
                 </Switch>
                 <Route exact path = '/not-found' component = {NotFound} />
                 </div>

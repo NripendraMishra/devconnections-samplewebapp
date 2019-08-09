@@ -32,6 +32,7 @@ export const registerUser = (userData, history) => dispatch => {
 
 // User Logout
 export const logoutUser = () => dispatch => {
+    console.log('aaa')
     // Remove token from local storage
     localStorage.removeItem('jwtToken')
     // Remove auth header for future requests

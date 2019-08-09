@@ -59,8 +59,6 @@ class NameInput extends Component{
     }
 
     onChange(e){
-        console.log(this.state)
-        console.log(e.target.value)
         this.setState({
             email: e.target.value
         }, () => {this.props.userEmail(this.state.email)})
